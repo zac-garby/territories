@@ -1,7 +1,6 @@
 package world
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 
@@ -17,13 +16,13 @@ const (
 )
 
 type Coord struct {
-	x, y float64
+	X, Y float64
 }
 
 type WorldGen struct {
 	noise         *perlin.Perlin
 	rand          *rand.Rand
-	midpoints     []Coord
+	Midpoints     []Coord
 	Pixels        [][]int
 	width, height int
 	seed          int64
@@ -41,12 +40,11 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 }
 
 func (g *WorldGen) initPoints(n int) {
-	g.midpoints = make([]Coord, n)
+	g.Midpoints = make([]Coord, n)
 
 	for i := 0; i < n; i++ {
-		g.midpoints[i].x = g.rand.Float64() * float64(g.width)
-		g.midpoints[i].y = g.rand.Float64() * float64(g.height)
-		fmt.Println(g.midpoints[i])
+		g.Midpoints[i].X = g.rand.Float64() * float64(g.width)
+		g.Midpoints[i].Y = g.rand.Float64() * float64(g.height)
 	}
 }
 
@@ -68,7 +66,7 @@ func (g *WorldGen) closestPoint(c Coord) int {
 		ci = -1
 	)
 
-	for i, p := range g.midpoints {
+	for i, p := range g.Midpoints {
 		dist := g.distance(c, p)
 		if dist < cd {
 			cd = dist
@@ -81,10 +79,10 @@ func (g *WorldGen) closestPoint(c Coord) int {
 
 func (g *WorldGen) distance(a, b Coord) float64 {
 	var (
-		mx    = (a.x + b.x) / 2
-		my    = (a.y + b.y) / 2
-		dx    = b.x - a.x
-		dy    = b.y - a.y
+		mx    = (a.X + b.X) / 2
+		my    = (a.Y + b.Y) / 2
+		dx    = b.X - a.X
+		dy    = b.Y - a.Y
 		noise = g.noise.Noise2D(w*(mx/float64(g.width)), w*(my/float64(g.height)))
 	)
 
