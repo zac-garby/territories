@@ -8,13 +8,15 @@ import (
 )
 
 func main() {
-	g := world.NewGen(512, 512, 100, 3)
+	num := 25
+	g := world.NewGen(512, 512, num, 4)
 	c := gg.NewContext(512, 512)
 
 	for x := 0; x < 512; x++ {
 		for y := 0; y < 512; y++ {
-			p := float64(g.Pixels[y][x]) / 100
-			c.SetRGB(math.Sqrt(p), math.Sqrt(1-p), math.Pow(p, p))
+			//n := g.Noise.Noise2D(10*(float64(x)/float64(512)), 10*(float64(y)/float64(512)))
+			p := float64(g.Pixels[y][x]) / float64(num)
+			c.SetRGB(p, math.Sqrt(1-p), 0)
 			c.SetPixel(x, y)
 		}
 	}

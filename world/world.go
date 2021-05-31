@@ -10,9 +10,11 @@ import (
 const (
 	alpha float64 = 2
 	beta  float64 = 2
-	n     int     = 1
-	w     float64 = 18
-	z     float64 = 0.25
+	n     int     = 3
+	w     float64 = 7
+	z     float64 = 0.35
+	delta float64 = 1
+	nint  int     = 3
 )
 
 type Coord struct {
@@ -20,7 +22,7 @@ type Coord struct {
 }
 
 type WorldGen struct {
-	noise         *perlin.Perlin
+	Noise         *perlin.Perlin
 	rand          *rand.Rand
 	Midpoints     []Coord
 	Pixels        [][]int
@@ -30,7 +32,7 @@ type WorldGen struct {
 
 func NewGen(width, height, npoints int, seed int64) *WorldGen {
 	g := &WorldGen{width: width, height: height, seed: seed}
-	g.noise = perlin.NewPerlin(alpha, beta, n, seed)
+	g.Noise = perlin.NewPerlin(alpha, beta, n, seed)
 	g.rand = rand.New(rand.NewSource(seed))
 
 	g.initPoints(npoints)
@@ -53,8 +55,7 @@ func (g *WorldGen) voronoi() {
 	for y := 0; y < g.height; y++ {
 		row := make([]int, g.width)
 		for x := 0; x < g.width; x++ {
-			closest := g.closestPoint(Coord{float64(x), float64(y)})
-			row[x] = closest
+			row[x] = g.closestPoint(Coord{float64(x), float64(y)})
 		}
 		g.Pixels[y] = row
 	}
@@ -67,7 +68,7 @@ func (g *WorldGen) closestPoint(c Coord) int {
 	)
 
 	for i, p := range g.Midpoints {
-		dist := g.distance(c, p)
+		dist := g.Distance(c, p)
 		if dist < cd {
 			cd = dist
 			ci = i
@@ -77,14 +78,36 @@ func (g *WorldGen) closestPoint(c Coord) int {
 	return ci
 }
 
-func (g *WorldGen) distance(a, b Coord) float64 {
+func (g *WorldGen) Distance(a, b Coord) float64 {
 	var (
-		mx    = (a.X + b.X) / 2
-		my    = (a.Y + b.Y) / 2
-		dx    = b.X - a.X
-		dy    = b.Y - a.Y
-		noise = g.noise.Noise2D(w*(mx/float64(g.width)), w*(my/float64(g.height)))
+		//mx    = (a.X + b.X) / 2
+		//my    = (a.Y + b.Y) / 2
+		dx     = b.X - a.X
+		dy     = b.Y - a.Y
+		length = math.Sqrt(dx*dx + dy*dy)
+		ndx    = dx / length
+		ndy    = dy / length
+		noise  = 0.0 //math.Abs(g.noise.Noise2D(w*(b.X/float64(g.width)), w*(b.Y/float64(g.height))) - g.noise.Noise2D(w*(a.X/float64(g.width)), w*(a.Y/float64(g.height))))
 	)
 
-	return (math.Abs(dx) + math.Abs(dy)) * (1 + noise*z)
+	delta := length / float64(nint)
+
+	for i := 0; i < nint; i++ {
+		x := a.X + float64(i)*delta*ndx
+		y := a.Y + float64(i)*delta*ndy
+		n := delta * math.Abs(g.Noise.Noise2D(w*(x/float64(g.width)), w*(y/float64(g.height))))
+		noise += math.Sqrt(delta*ndx*delta*ndx + delta*ndy*delta*ndy + 81*n*n)
+	}
+
+	//fmt.Println(noise)
+
+	return noise // + 10*noise // * (1 + noise*z)
+}
+
+func (g *WorldGen) disjoinRegions() {
+	for x := 0; x < g.width; x++ {
+		for y := 0; y < g.height; y++ {
+
+		}
+	}
 }
