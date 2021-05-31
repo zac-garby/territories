@@ -1,8 +1,6 @@
 package main
 
 import (
-	"math"
-
 	"github.com/fogleman/gg"
 	"github.com/zac-garby/territories/world"
 )
@@ -14,9 +12,9 @@ func main() {
 
 	for x := 0; x < 512; x++ {
 		for y := 0; y < 512; y++ {
-			//n := g.Noise.Noise2D(10*(float64(x)/float64(512)), 10*(float64(y)/float64(512)))
-			p := float64(g.Pixels[y][x]) / float64(num)
-			c.SetRGB(p, math.Sqrt(1-p), 0)
+			n := g.Interperlin(float64(x), float64(y))
+			//p := float64(g.Pixels[y][x]) / float64(num)
+			c.SetRGB(0.5+0.5*n, 0.5+0.5*n, 0.5+0.5*n)
 			c.SetPixel(x, y)
 		}
 	}
