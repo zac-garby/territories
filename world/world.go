@@ -8,13 +8,12 @@ import (
 )
 
 const (
-	alpha float64 = 2
-	beta  float64 = 2
-	n     int     = 8
-	w     float64 = 3
-	z     float64 = 0.35
-	delta float64 = 1
-	nint  int     = 3
+	alpha     float64 = 2
+	beta      float64 = 2
+	n         int     = 3
+	w         float64 = 6
+	nint      int     = 4
+	steepness float64 = 32
 )
 
 type Coord struct {
@@ -38,7 +37,7 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 
 	g.precomputePerlin()
 	g.initPoints(npoints)
-	//g.voronoi()
+	g.voronoi()
 
 	return g
 }
@@ -116,7 +115,7 @@ func (g *WorldGen) Distance(a, b Coord) float64 {
 		length = math.Sqrt(dx*dx + dy*dy)
 		ndx    = dx / length
 		ndy    = dy / length
-		noise  = 0.0 //math.Abs(g.noise.Noise2D(w*(b.X/float64(g.width)), w*(b.Y/float64(g.height))) - g.noise.Noise2D(w*(a.X/float64(g.width)), w*(a.Y/float64(g.height))))
+		noise  = 0.0
 	)
 
 	delta := length / float64(nint)
@@ -124,8 +123,8 @@ func (g *WorldGen) Distance(a, b Coord) float64 {
 	for i := 0; i < nint; i++ {
 		x := a.X + float64(i)*delta*ndx
 		y := a.Y + float64(i)*delta*ndy
-		n := delta * math.Abs(g.Noise.Noise2D(w*(x/float64(g.Width)), w*(y/float64(g.Height))))
-		noise += math.Sqrt(delta*ndx*delta*ndx + delta*ndy*delta*ndy + 81*n*n)
+		n := delta * math.Abs(g.Interperlin(x, y))
+		noise += math.Sqrt(delta*ndx*delta*ndx + delta*ndy*delta*ndy + steepness*n*n)
 	}
 
 	//fmt.Println(noise)

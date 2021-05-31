@@ -13,8 +13,8 @@ func main() {
 	for x := 0; x < 512; x++ {
 		for y := 0; y < 512; y++ {
 			n := g.Interperlin(float64(x), float64(y))
-			//p := float64(g.Pixels[y][x]) / float64(num)
-			c.SetRGB(0.5+0.5*n, 0.5+0.5*n, 0.5+0.5*n)
+			p := float64(g.Pixels[y][x]) / float64(num)
+			c.SetRGB(0.5+0.5*n, 1-p, p)
 			c.SetPixel(x, y)
 		}
 	}
