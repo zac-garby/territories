@@ -1,6 +1,7 @@
 package world
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -28,6 +29,7 @@ type WorldGen struct {
 	Pixels        [][]int
 	Width, Height int
 	Seed          int64
+	NumRegions    int
 }
 
 func NewGen(width, height, npoints int, seed int64) *WorldGen {
@@ -39,6 +41,12 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 	g.initPoints(npoints)
 	g.voronoi()
 	g.disjoinRegions()
+	g.NumRegions = g.renumber()
+	fmt.Printf("there are %d regions\n", g.NumRegions)
+
+	for g.removeTiny(3000) {
+		g.NumRegions = g.renumber()
+	}
 
 	return g
 }
@@ -128,9 +136,7 @@ func (g *WorldGen) Distance(a, b Coord) float64 {
 		noise += math.Sqrt(delta*ndx*delta*ndx + delta*ndy*delta*ndy + steepness*n*n)
 	}
 
-	//fmt.Println(noise)
-
-	return noise // + 10*noise // * (1 + noise*z)
+	return noise
 }
 
 func (g *WorldGen) disjoinRegions() {
@@ -173,7 +179,7 @@ func (g *WorldGen) disjoinRegions() {
 					min, max = top, left
 				}
 
-				if _, exists := equiv[max]; !exists {
+				if _, exists := equiv[max]; !exists { // i think something could be done in the else here
 					equiv[min] = max
 				}
 
@@ -196,4 +202,112 @@ func (g *WorldGen) disjoinRegions() {
 	}
 
 	g.Pixels = res
+}
+
+func (g *WorldGen) measureRegions() map[int]int {
+	sizes := make(map[int]int, 32)
+
+	for x := 0; x < g.Width; x++ {
+		for y := 0; y < g.Height; y++ {
+			val := g.Pixels[y][x]
+
+			if _, ok := sizes[val]; ok {
+				sizes[val]++
+			} else {
+				sizes[val] = 1
+			}
+		}
+	}
+
+	return sizes
+}
+
+func (g *WorldGen) renumber() int {
+	var (
+		mappings = make(map[int]int, 0)
+		i        = 0
+	)
+
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			val := g.Pixels[y][x]
+
+			if m, ok := mappings[val]; ok {
+				g.Pixels[y][x] = m
+			} else {
+				mappings[val] = i
+				g.Pixels[y][x] = i
+				i++
+			}
+		}
+	}
+
+	return i
+}
+
+func (g *WorldGen) removeTiny(threshold int) bool {
+	var (
+		sizes   = g.measureRegions()
+		adj     = g.getAdjacencyMatrix()
+		repl    = make([]int, g.NumRegions)
+		changed = false
+	)
+
+	for from, row := range adj {
+		if sizes[from] < threshold {
+			fmt.Printf("%d is too small (%d)\n", from, sizes[from])
+			best := 0
+
+			for to, a := range row {
+				if to != from && a != 0 && a > best {
+					best = a
+					repl[from] = to
+				}
+			}
+
+			changed = true
+		} else {
+			repl[from] = from
+		}
+	}
+
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			g.Pixels[y][x] = repl[g.Pixels[y][x]]
+		}
+	}
+
+	return changed
+}
+
+func (g *WorldGen) getAdjacencyMatrix() [][]int {
+	adj := make([][]int, g.NumRegions)
+
+	for i := 0; i < g.NumRegions; i++ {
+		adj[i] = make([]int, g.NumRegions)
+	}
+
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			val := g.Pixels[y][x]
+
+			if x > 0 {
+				adj[val][g.Pixels[y][x-1]]++
+			}
+
+			if x+1 < g.Width {
+				adj[val][g.Pixels[y][x+1]]++
+			}
+
+			if y > 0 {
+				adj[val][g.Pixels[y-1][x]]++
+			}
+
+			if y+1 < g.Height {
+				adj[val][g.Pixels[y+1][x]]++
+			}
+		}
+	}
+
+	return adj
 }

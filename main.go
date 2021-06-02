@@ -1,8 +1,6 @@
 package main
 
 import (
-	"math"
-
 	"github.com/fogleman/gg"
 	"github.com/zac-garby/territories/world"
 )
@@ -16,7 +14,7 @@ func main() {
 		for y := 0; y < g.Height; y++ {
 			//n := g.Interperlin(float64(x), float64(y))
 			p := float64(g.Pixels[y][x]%16) / 16 //float64(num)
-			c.SetRGB(p, 1-p, math.Sqrt(p))
+			c.SetRGB(p, p, p)
 			c.SetPixel(x, y)
 		}
 	}
