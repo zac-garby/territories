@@ -255,7 +255,6 @@ func (g *WorldGen) removeTiny(threshold int) bool {
 
 	for from, row := range adj {
 		if sizes[from] < threshold {
-			fmt.Printf("%d is too small (%d)\n", from, sizes[from])
 			best := 0
 
 			for to, a := range row {
