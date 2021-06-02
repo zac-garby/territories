@@ -1,6 +1,8 @@
 package main
 
 import (
+	"math"
+
 	"github.com/fogleman/gg"
 	"github.com/zac-garby/territories/world"
 )
@@ -8,13 +10,13 @@ import (
 func main() {
 	num := 25
 	g := world.NewGen(512, 512, num, 4)
-	c := gg.NewContext(512, 512)
+	c := gg.NewContext(g.Width, g.Height)
 
-	for x := 0; x < 512; x++ {
-		for y := 0; y < 512; y++ {
-			n := g.Interperlin(float64(x), float64(y))
-			p := float64(g.Pixels[y][x]) / float64(num)
-			c.SetRGB(0.5+0.5*n, 1-p, p)
+	for x := 0; x < g.Width; x++ {
+		for y := 0; y < g.Height; y++ {
+			//n := g.Interperlin(float64(x), float64(y))
+			p := float64(g.Pixels[y][x]%16) / 16 //float64(num)
+			c.SetRGB(p, 1-p, math.Sqrt(p))
 			c.SetPixel(x, y)
 		}
 	}

@@ -37,7 +37,9 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 
 	g.precomputePerlin()
 	g.initPoints(npoints)
+	//g.testInit()
 	g.voronoi()
+	g.disjoinRegions()
 
 	return g
 }
@@ -132,10 +134,90 @@ func (g *WorldGen) Distance(a, b Coord) float64 {
 	return noise // + 10*noise // * (1 + noise*z)
 }
 
-func (g *WorldGen) disjoinRegions() {
-	for x := 0; x < g.Width; x++ {
-		for y := 0; y < g.Height; y++ {
+func (g *WorldGen) testInit() {
+	g.Width = 16
+	g.Height = 16
+	g.Pixels = [][]int{
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 2, 2, 1, 1},
+		{1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 1, 1, 2, 2, 1, 1},
+		{1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 1},
+		{1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1},
+		{1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1},
+		{1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+		{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+	}
+}
 
+func (g *WorldGen) disjoinRegions() {
+	var (
+		res      = make([][]int, g.Height)
+		i        = 1
+		mappings = make(map[int]int, 0)
+		equiv    = make(map[int]int, 0)
+	)
+
+	for y := 0; y < g.Height; y++ {
+		row := make([]int, g.Width)
+		res[y] = row
+
+		for x := 0; x < g.Width; x++ {
+			var (
+				val       = g.Pixels[y][x]
+				top, left = -1, -1
+			)
+
+			if x > 0 {
+				if m, ok := mappings[res[y][x-1]]; ok && m == val {
+					left = res[y][x-1]
+				}
+			}
+
+			if y > 0 {
+				if m, ok := mappings[res[y-1][x]]; ok && m == val {
+					top = res[y-1][x]
+				}
+			}
+
+			if left == -1 && top == -1 {
+				mappings[i] = val
+				res[y][x] = i
+				i++
+			} else if left > -1 && top > -1 && top != left {
+				min, max := left, top
+				if top < left {
+					min, max = top, left
+				}
+
+				if _, exists := equiv[max]; !exists {
+					equiv[min] = max
+				}
+
+				res[y][x] = max
+			} else if left == -1 {
+				res[y][x] = top
+			} else {
+				res[y][x] = left
+			}
 		}
 	}
+
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			val := res[y][x]
+			for repl, ok := equiv[val]; ok; repl, ok = equiv[repl] {
+				res[y][x] = repl
+			}
+		}
+	}
+
+	g.Pixels = res
 }
