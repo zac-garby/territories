@@ -1,7 +1,6 @@
 package world
 
 import (
-	"fmt"
 	"math"
 	"math/rand"
 
@@ -26,10 +25,12 @@ type WorldGen struct {
 	Perlin        [][]float64
 	Rand          *rand.Rand
 	Midpoints     []Coord
+	Starts        []Coord
 	Pixels        [][]int
 	Width, Height int
 	Seed          int64
 	NumRegions    int
+	Polygons      [][]Coord
 }
 
 func NewGen(width, height, npoints int, seed int64) *WorldGen {
@@ -42,10 +43,19 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 	g.voronoi()
 	g.disjoinRegions()
 	g.NumRegions = g.renumber()
-	fmt.Printf("there are %d regions\n", g.NumRegions)
 
 	for g.removeTiny(3000) {
 		g.NumRegions = g.renumber()
+	}
+
+	g.Starts = make([]Coord, g.NumRegions)
+	for k, v := range g.getRegionStarts() {
+		g.Starts[k] = v
+	}
+
+	g.Polygons = make([][]Coord, g.NumRegions)
+	for n := 0; n < g.NumRegions; n++ {
+		g.Polygons[n] = g.Polygon(n)
 	}
 
 	return g
@@ -309,4 +319,99 @@ func (g *WorldGen) getAdjacencyMatrix() [][]int {
 	}
 
 	return adj
+}
+
+func (g *WorldGen) getRegionStarts() map[int]Coord {
+	coords := make(map[int]Coord, g.NumRegions)
+
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			val := g.Pixels[y][x]
+			if _, ok := coords[val]; !ok {
+				coords[val] = Coord{X: float64(x), Y: float64(y)}
+			}
+		}
+	}
+
+	return coords
+}
+
+func (g *WorldGen) Polygon(r int) []Coord {
+	var (
+		startC = g.Starts[r]
+		px, py = int(startC.X), int(startC.Y)
+		sx, sy = px, py
+		dx     = 1
+		dy     = 0
+		coords = make([]Coord, 0, 1000)
+	)
+
+	for {
+		coords = append(coords, Coord{X: float64(px), Y: float64(py)})
+		px += dx
+		py += dy
+
+		if px == sx && py == sy {
+			break
+		}
+
+		if g.hasEdge(px, py, r, dx, dy) {
+			dx = dx
+			dy = dy
+		} else if g.hasEdge(px, py, r, dy, -dx) {
+			dx, dy = dy, -dx
+		} else if g.hasEdge(px, py, r, -dy, dx) {
+			dx, dy = -dy, dx
+		} else {
+			panic("no edges to follow")
+		}
+	}
+
+	return coords
+}
+
+func (g *WorldGen) hasEdge(px, py int, region int, dx, dy int) bool {
+	if dy == 0 {
+		if dx == 1 {
+			dx = 0
+		}
+		if px+dx < 0 || px+dx >= g.Width {
+			return false
+		}
+		outAbove := py-1 < 0
+		outBelow := py >= g.Height
+
+		if outAbove && !outBelow {
+			return g.Pixels[py][px+dx] == region
+		} else if outBelow && !outAbove {
+			return g.Pixels[py-1][px+dx] == region
+		}
+
+		above := g.Pixels[py-1][px+dx]
+		below := g.Pixels[py][px+dx]
+
+		return (above == region && below != region) || (above != region && below == region)
+	} else if dx == 0 {
+		if dy == 1 {
+			dy = 0
+		}
+		if py+dy < 0 || py+dy >= g.Height {
+			return false
+		}
+		outLeft := px-1 < 0
+		outRight := px >= g.Width
+
+		if outLeft && !outRight {
+			return g.Pixels[py+dy][px] == region
+		} else if outRight && !outLeft {
+			return g.Pixels[py+dy][px-1] == region
+		}
+
+		left := g.Pixels[py+dy][px-1]
+		right := g.Pixels[py+dy][px]
+
+		return (left == region && right != region) || (left != region && right == region)
+	}
+
+	panic("this shouldn't happen")
 }

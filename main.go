@@ -12,17 +12,10 @@ func main() {
 
 	for x := 0; x < g.Width; x++ {
 		for y := 0; y < g.Height; y++ {
-			//n := g.Interperlin(float64(x), float64(y))
-			p := float64(g.Pixels[y][x]%16) / 16 //float64(num)
+			p := float64(g.Pixels[y][x]) / float64(g.NumRegions)
 			c.SetRGB(p, p, p)
 			c.SetPixel(x, y)
 		}
-	}
-
-	c.SetRGB(1, 1, 1)
-	for _, p := range g.Midpoints {
-		c.DrawCircle(p.X, p.Y, 2)
-		c.Fill()
 	}
 
 	c.SavePNG("out.png")
