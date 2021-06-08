@@ -27,6 +27,8 @@ type WorldGen struct {
 	Seed          int64
 	NumRegions    int
 	Polygons      [][]Coord
+	Adjacency     [][]bool
+	Centroids     []Coord
 }
 
 func NewGen(width, height, npoints int, seed int64) *WorldGen {
@@ -54,14 +56,27 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 		g.Polygons[n] = g.Polygon(n)
 	}
 
+	adj := g.getAdjacencyMatrix() // TODO: this can be called only once
+	g.Adjacency = make([][]bool, g.NumRegions)
+	for n := 0; n < g.NumRegions; n++ {
+		g.Adjacency[n] = make([]bool, g.NumRegions)
+		for m := 0; m < g.NumRegions; m++ {
+			g.Adjacency[n][m] = adj[n][m] > 0
+		}
+	}
+
+	g.Centroids = g.getCentroids()
+
 	return g
 }
 
 func (g *WorldGen) World() *World {
 	w := &World{
-		Width:   g.Width,
-		Height:  g.Height,
-		Regions: g.Polygons,
+		Width:     g.Width,
+		Height:    g.Height,
+		Regions:   g.Polygons,
+		Adjacency: g.Adjacency,
+		Centroids: g.Centroids,
 	}
 
 	return w
@@ -420,4 +435,28 @@ func (g *WorldGen) hasEdge(px, py int, region int, dx, dy int) bool {
 	}
 
 	panic("this shouldn't happen")
+}
+
+func (g *WorldGen) getCentroids() []Coord {
+	cs := make([]Coord, g.NumRegions)
+	ns := make([]int, g.NumRegions)
+
+	// calculate centroids as a moving average
+	for y := 0; y < g.Height; y++ {
+		for x := 0; x < g.Width; x++ {
+			r := g.Pixels[y][x]
+
+			if ns[r] == 0 {
+				cs[r] = Coord{}
+			} else {
+				n := float64(ns[r])
+				cs[r].X = (n*cs[r].X + float64(x)) / (n + 1)
+				cs[r].Y = (n*cs[r].Y + float64(y)) / (n + 1)
+			}
+
+			ns[r] += 1
+		}
+	}
+
+	return cs
 }

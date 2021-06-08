@@ -1,4 +1,4 @@
-var pixi, sock, polygons
+var pixi, sock, polygons, centroids
 
 function onload() {
     init()
@@ -53,6 +53,10 @@ function wsGotMessage(evt) {
     } else if (msg.startsWith("POLYGONS")) {
         polygons = JSON.parse(msg.substring(8))
         console.log("got polygons")
+        sock.send("CEN")
+    } else if (msg.startsWith("CENTROIDS")) {
+        centroids = JSON.parse(msg.substring(9))
+        console.log("got centroids")
         render()
     } else if (msg.startsWith("NOGAME")) {
         console.error("no game in progress")
@@ -70,10 +74,25 @@ function wsError(evt) {
 function render() {
     for (var i = 0; i < polygons.length; i++) {
         let poly = new PIXI.Graphics()
-        poly.lineStyle(2, 0xff3300, 1)
+        poly.beginFill(0xffffff)
+        poly.lineStyle(2, 0x000000, 1)
         poly.drawPolygon(polygons[i])
+        poly.endFill()
+        
         poly.x = 0
         poly.y = 0
         pixi.stage.addChild(poly)
+    }
+
+    for (var i = 0; i < centroids.length; i++) {
+        let center = new PIXI.Graphics()
+        center.beginFill(0x000000)
+        center.lineStyle(2, 0xffffff, 1)
+        center.drawRoundedRect(-12.5, -15, 25, 30, 4)
+        center.endFill()
+        
+        center.x = centroids[i].x
+        center.y = centroids[i].y
+        pixi.stage.addChild(center)
     }
 }

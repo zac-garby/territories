@@ -125,6 +125,18 @@ func (s *Server) handleMessage(msg []byte, g *game.Game, conn *websocket.Conn) e
 
 		regionsJson, _ := json.Marshal(points)
 		return conn.WriteMessage(websocket.TextMessage, append(RESP_POLYGON, regionsJson...))
+	} else if bytes.Equal(cmd, CMD_CENTROID) {
+		// get the centroids for all regions
+		if g == nil {
+			if err := conn.WriteMessage(websocket.TextMessage, RESP_NOGAME); err != nil {
+				return err
+			}
+
+			return errors.New("no game has been created")
+		}
+
+		cs, _ := json.Marshal(g.World.Centroids)
+		return conn.WriteMessage(websocket.TextMessage, append(RESP_CENTROID, cs...))
 	}
 
 	return nil
