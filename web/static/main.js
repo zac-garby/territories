@@ -19,8 +19,8 @@ function init() {
     PIXI.utils.sayHello(type)
 
     pixi = new PIXI.Application({
-        width: 512,
-        height: 512,
+        width: 600,
+        height: 600,
         resolution: window.devicePixelRatio,
         autoDensity: true,
     })

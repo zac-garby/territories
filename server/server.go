@@ -96,15 +96,11 @@ func (s *Server) handleMessage(msg []byte, g *game.Game, conn *websocket.Conn) e
 		cmd = msg[:3]
 	}
 
-	if msg[3] != ' ' {
-		return errors.New("invalid format - missing fourth character space")
-	}
-
 	fmt.Println(string(cmd), string(param))
 
 	if bytes.Equal(cmd, CMD_GENERATE) {
 		// generate a new world
-		*g = *game.NewGame(512, 512, 20, 10)
+		*g = *game.NewGame(600, 600, 40, 10)
 		log.Println("a new game has been created")
 		return conn.WriteMessage(websocket.TextMessage, RESP_GEN)
 	} else if bytes.Equal(cmd, CMD_POLYGON) {
