@@ -1,6 +1,9 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -61,18 +64,72 @@ func (s *Server) Start() {
 }
 
 func (s *Server) connection(conn *websocket.Conn) {
-	game := game.NewGame()
+	g := &game.Game{}
 
 	for {
-		msgType, msg, err := conn.ReadMessage()
+		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		if err := conn.WriteMessage(msgType, msg); err != nil {
+		if err := s.handleMessage(msg, g, conn); err != nil {
 			log.Println(err)
-			return
 		}
 	}
+}
+
+func (s *Server) handleMessage(msg []byte, g *game.Game, conn *websocket.Conn) error {
+	var cmd, param []byte
+
+	if len(msg) > 4 {
+		cmd = msg[:3]
+		param = msg[4:]
+		if msg[3] != ' ' {
+			if err := conn.WriteMessage(websocket.TextMessage, RESP_INVALID); err != nil {
+				return err
+			}
+
+			return errors.New("invalid format - missing fourth character space")
+		}
+	} else {
+		cmd = msg[:3]
+	}
+
+	if msg[3] != ' ' {
+		return errors.New("invalid format - missing fourth character space")
+	}
+
+	fmt.Println(string(cmd), string(param))
+
+	if bytes.Equal(cmd, CMD_GENERATE) {
+		// generate a new world
+		*g = *game.NewGame(512, 512, 20, 10)
+		log.Println("a new game has been created")
+		return conn.WriteMessage(websocket.TextMessage, RESP_GEN)
+	} else if bytes.Equal(cmd, CMD_POLYGON) {
+		// get the polygons for the current world
+		if g == nil {
+			if err := conn.WriteMessage(websocket.TextMessage, RESP_NOGAME); err != nil {
+				return err
+			}
+
+			return errors.New("no game has been created")
+		}
+
+		regions := g.World.Regions
+		points := make([][]float64, len(regions))
+		for i, reg := range regions {
+			points[i] = make([]float64, len(reg)*2)
+			for j, p := range reg {
+				points[i][2*j] = p.X
+				points[i][2*j+1] = p.Y
+			}
+		}
+
+		regionsJson, _ := json.Marshal(points)
+		return conn.WriteMessage(websocket.TextMessage, append(RESP_POLYGON, regionsJson...))
+	}
+
+	return nil
 }
