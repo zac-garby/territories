@@ -21,24 +21,12 @@ function init() {
     pixi = new PIXI.Application({
         width: 600,
         height: 600,
+        backgroundColor: 0xff0000,
         resolution: window.devicePixelRatio,
         autoDensity: true,
     })
     
     document.body.appendChild(pixi.view)
-
-    /* let points = [0, 42, 1, 42, 1, 43]
-    
-    let rect = new PIXI.Graphics()
-    rect.lineStyle(2, 0xff3300, 1)
-    //rect.beginFill(0x66ccff)
-    rect.drawPolygon(points)
-    //rect.endFill()
-    rect.x = 0
-    rect.y = 0
-
-    app.stage.addChild(rect)
-    */
 }
 
 function wsOpened(evt) {
@@ -75,7 +63,7 @@ function render() {
     for (var i = 0; i < polygons.length; i++) {
         let poly = new PIXI.Graphics()
         poly.beginFill(0xffffff)
-        poly.lineStyle(2, 0x000000, 1)
+        poly.lineStyle(1, 0x000000, 1)
         poly.drawPolygon(polygons[i])
         poly.endFill()
         

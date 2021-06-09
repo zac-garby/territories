@@ -1,6 +1,7 @@
 package world
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 
@@ -36,26 +37,36 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 	g.Noise = perlin.NewPerlin(alpha, beta, n, seed)
 	g.Rand = rand.New(rand.NewSource(seed))
 
+	fmt.Println("generating a world:")
+	fmt.Println(" 1. precomputing perlin noise")
 	g.precomputePerlin()
+	fmt.Println(" 2. initialising points")
 	g.initPoints(npoints)
+	fmt.Println(" 3. applying voronoi")
 	g.voronoi()
+	fmt.Println(" 4. finding disjoin regions")
 	g.disjoinRegions()
+	fmt.Println(" 5. renumbering regions")
 	g.NumRegions = g.renumber()
 
+	fmt.Println(" 6. removing tiny regions")
 	for g.removeTiny(3000) {
 		g.NumRegions = g.renumber()
 	}
 
+	fmt.Println(" 7. finding region start points")
 	g.Starts = make([]Coord, g.NumRegions)
 	for k, v := range g.getRegionStarts() {
 		g.Starts[k] = v
 	}
 
+	fmt.Println(" 8. finding region polygon vertices")
 	g.Polygons = make([][]Coord, g.NumRegions)
 	for n := 0; n < g.NumRegions; n++ {
 		g.Polygons[n] = g.Polygon(n)
 	}
 
+	fmt.Println(" 9. constructing adjacency matrix")
 	adj := g.getAdjacencyMatrix() // TODO: this can be called only once
 	g.Adjacency = make([][]bool, g.NumRegions)
 	for n := 0; n < g.NumRegions; n++ {
@@ -65,6 +76,11 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 		}
 	}
 
+	fmt.Println(" 10. simplifying region polygons")
+	g.Polygons = g.reduceVertices(1.2)
+	//g.Polygons = g.reduceVertices(2)
+
+	fmt.Println(" 11. finding centroids")
 	g.Centroids = g.getCentroids()
 
 	return g
@@ -459,4 +475,58 @@ func (g *WorldGen) getCentroids() []Coord {
 	}
 
 	return cs
+}
+
+func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
+	polys := make([][]Coord, g.NumRegions)
+	threshSqr := errThresh * errThresh
+
+	for i, poly := range g.Polygons {
+		polys[i] = make([]Coord, 0, len(poly)/25)
+
+		v := 0 // v is the start vertex
+		for v < len(poly) {
+			pv := poly[v]
+			polys[i] = append(polys[i], pv)
+
+			u := v + 1 // u is the potential end point of the new line
+
+			var maxErr float64
+
+			for u < len(poly) {
+				pu := poly[u]
+				maxErr = 0.0
+
+				for z := v + 1; z < u; z++ {
+					pz := poly[z]
+					err := lineDistSqr(pv.X, pv.Y, pu.X, pu.Y, pz.X, pz.Y)
+					if err > maxErr {
+						maxErr = err
+					}
+				}
+
+				if maxErr > threshSqr {
+					break
+				} else {
+					u += 1
+				}
+			}
+
+			if u < len(poly) {
+				v = u
+			} else {
+				break
+			}
+		}
+
+		//fmt.Printf("there are %d vertices for region %d\n", len(polys[i]), i)
+	}
+
+	return polys
+}
+
+func lineDistSqr(x1, y1, x2, y2, px, py float64) float64 {
+	return math.Pow((x2-x1)*(y1-py)-(x1-px)*(y2-y1), 2) /
+		// --------------------------------------------
+		(math.Pow(x2-x1, 2) + math.Pow(y2-y1, 2))
 }
