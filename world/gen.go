@@ -480,6 +480,8 @@ func (g *WorldGen) getCentroids() []Coord {
 func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
 	polys := make([][]Coord, g.NumRegions)
 	threshSqr := errThresh * errThresh
+	w := float64(g.Width)
+	h := float64(g.Height)
 
 	for i, poly := range g.Polygons {
 		polys[i] = make([]Coord, 0, len(poly)/25)
@@ -496,6 +498,18 @@ func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
 			for u < len(poly) {
 				pu := poly[u]
 				maxErr = 0.0
+
+				if u+1 < len(poly) {
+					npu := poly[u+1]
+					ppu := poly[u-1]
+
+					if pu.X == 0 && (npu.X != 0 || ppu.X != 0) ||
+						pu.Y == 0 && (npu.Y != 0 || ppu.Y != 0) ||
+						pu.X == w && (npu.X != w || ppu.X != w) ||
+						pu.Y == h && (npu.Y != h || ppu.Y != h) {
+						break
+					}
+				}
 
 				for z := v + 1; z < u; z++ {
 					pz := poly[z]
@@ -519,7 +533,7 @@ func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
 			}
 		}
 
-		//fmt.Printf("there are %d vertices for region %d\n", len(polys[i]), i)
+		fmt.Printf("reduced %d vertices to %d\n", len(poly), len(polys[i]))
 	}
 
 	return polys
