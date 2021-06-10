@@ -489,6 +489,8 @@ func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
 		v := 0 // v is the start vertex
 		for v < len(poly) {
 			pv := poly[v]
+
+			// add the current vertex to the new polygon
 			polys[i] = append(polys[i], pv)
 
 			u := v + 1 // u is the potential end point of the new line
