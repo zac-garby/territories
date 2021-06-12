@@ -77,7 +77,7 @@ func NewGen(width, height, npoints int, seed int64) *WorldGen {
 	}
 
 	fmt.Println(" 10. simplifying region polygons")
-	g.Polygons = g.reduceVertices(1.2)
+	g.Polygons = g.reduceVertices(1.5)
 	//g.Polygons = g.reduceVertices(2)
 
 	fmt.Println(" 11. finding centroids")
@@ -478,10 +478,12 @@ func (g *WorldGen) getCentroids() []Coord {
 }
 
 func (g *WorldGen) reduceVertices(errThresh float64) [][]Coord {
-	polys := make([][]Coord, g.NumRegions)
-	threshSqr := errThresh * errThresh
-	w := float64(g.Width)
-	h := float64(g.Height)
+	var (
+		polys     = make([][]Coord, g.NumRegions)
+		threshSqr = errThresh * errThresh
+		w         = float64(g.Width)
+		h         = float64(g.Height)
+	)
 
 	for i, poly := range g.Polygons {
 		polys[i] = make([]Coord, 0, len(poly)/25)

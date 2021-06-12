@@ -63,7 +63,7 @@ function render() {
     for (var i = 0; i < polygons.length; i++) {
         let poly = new PIXI.Graphics()
         poly.beginFill(0xffffff)
-        poly.lineStyle(1, 0x000000, 1)
+        poly.lineStyle(3, 0x000000, 1)
         poly.drawPolygon(polygons[i])
         poly.endFill()
         
